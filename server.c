@@ -8,11 +8,13 @@
 #include <netinet/in.h>
 #include "utilities.h"
 
+#define MAXBUFFER 1024
+
 int main(int argc, char** argv) {
     char* filename;
     int window_size;
     int buffer_size;
-    int destination_port;
+    int port;
 
     if (argc == 2){
         if ((strcmp(argv[1],"--help") == 0)){
@@ -36,15 +38,52 @@ int main(int argc, char** argv) {
             strcpy(filename,argv[1]);
             window_size = atoi(argv[2]);
             buffer_size = atoi(argv[3]);
-            destination_port = atoi(argv[4]);
+            port = atoi(argv[4]);
         } else {
             printf("%s: wrong parameter(s)\nTry '%s --help' for more information.\n",argv[0],argv[0]);
             exit(0);
         }
     }
 
-    printf("%s %d %d %d\n",filename,window_size,buffer_size,destination_port);
+    printf("%s %d %d %d\n",filename,window_size,buffer_size,port);
 
+    int sockfd;
+    struct sockaddr_in server_address, client_address;
+
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0){
+        perror("ERROR Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(&server_address, 0, sizeof(server_address));
+    memset(&client_address, 0, sizeof(client_address));
+
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(port);
+    server_address.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(sockfd, (const struct sockaddr *)&server_address, sizeof(server_address)) < 0){
+        perror("ERROR Binding server information into socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+    struct packet_payload packets[buffer_size];
+    int packet_size_read, dummy;
+
+    packet_size_read = recvfrom(sockfd, (struct packet_payload *)packets, sizeof(packets), MSG_WAITALL, (struct sockaddr *) &client_address, &dummy);
+
+    int i = 0;
+    while((i < MAXBUFFER) && (packets[i].SOH != 0x00)){
+        printf("SOH = %d\n",packets[i].SOH);
+        printf("sequence_number = %d\n",packets[i].sequence_number);
+        printf("data_length = %d\n",packets[i].data_length);
+        for (int j = 0; j < packets[i].data_length; j++){
+            printf("%c",packets[i].data[j]);
+        }
+        printf("\nchecksum = %x\n\n",packets[i].checksum);
+        i++;
+    }
     free(filename);
     return 0; 
 } 
