@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 
     int i = 0;
     while((i < MAXBUFFER) && (packets[i].SOH != 0x00)){
-        sendto(sockfd, (const struct packet_payload *)packets[i], sizeof(packets), MSG_CONFIRM, (const struct sockaddr *) &server_address, sizeof(server_address));
+        sendto(sockfd, (const struct packet_payload *)&(packets[i]), sizeof(packets), MSG_CONFIRM, (const struct sockaddr *) &server_address, sizeof(server_address));
         printf("Packet %d sent.\n",packets[i].sequence_number);
         i++;
     }
@@ -131,7 +131,8 @@ int main(int argc, char** argv) {
     //     printf("\nchecksum = %x\n\n",packets[i].checksum);
     //     i++;
     // }
-
+    char * exit = "EXIT";
+    sendto(sockfd, (const char *)exit, strlen(exit), MSG_CONFIRM, (const struct sockaddr *) &server_address, sizeof(server_address));
     free(filename);
     free(destination_ip);
     return 0; 

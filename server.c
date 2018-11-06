@@ -69,11 +69,22 @@ int main(int argc, char** argv) {
     }
 
     struct packet_payload packets[buffer_size];
-    int packet_size_read, dummy;
-
-    packet_size_read = recvfrom(sockfd, (struct packet_payload *)packets, sizeof(packets), MSG_WAITALL, (struct sockaddr *) &client_address, &dummy);
 
     int i = 0;
+    for(;;){
+        struct packet_payload temp_packet;
+        int packet_size_read, dummy;
+
+        packet_size_read = recvfrom(sockfd, (struct packet_payload *)&temp_packet, sizeof(temp_packet), MSG_WAITALL, (struct sockaddr *) &client_address, &dummy);
+        memcpy((void *)&(packets[i]),(const void *)&temp_packet,sizeof(temp_packet));
+        i++;
+
+        if ((temp_packet.data_length < MAXBUFFER) || (i >= buffer_size)){
+            break;
+        }
+    }
+
+    i = 0;
     while((i < MAXBUFFER) && (packets[i].SOH != 0x00)){
         printf("SOH = %d\n",packets[i].SOH);
         printf("sequence_number = %d\n",packets[i].sequence_number);
